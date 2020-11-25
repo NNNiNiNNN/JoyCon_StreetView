@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>StreetView</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <input type="button" onclick="proceed()" id="count" value="0歩">
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+ 
+        #street-view {
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+ 
+<div id="street-view"></div>
+
+
+<script>
+    const LIMIT = 300; // 移動回数の上限値
+    const START_LAT_LNG = {lat: 35.1010033, lng: 139.0779688}; // 開始地点の緯度、経度
+    const START_HEADING = 180; // 開始時の方角
+    let panorama;
+    isProceed = false;
+    let count = 0;
+    let m = 0;
+    let n = 5; // 何歩ごとに1進むか。Unityでも設定する。少ない方が嬉しいが無料枠に注意
+    let buttonText = document.getElementById('count');
+    function initMap() {
+        let Links, count = 0, timer_id;
+         panorama = new google.maps.StreetViewPanorama(
+            document.getElementById('street-view'), {
+                position: START_LAT_LNG,
+                pov: {
+                    heading: START_HEADING,
+                    pitch: 0
+                },
+                zoom: 1
+            }); // 
+
+        // 座標の微妙なズレに補正を加える
+        svs = new google.maps.StreetViewService();
+        svs.getPanoramaByLocation(START_LAT_LNG, 50, function(result, status) {
+            if (status == google.maps.StreetViewStatus.OK){
+                    panorama.setPosition(result.location.latLng);
+            }
+        });
+        Links = panorama.getLinks();
+ 
+
+
+    }
+
+    function proceed()
+    {
+        m++;
+        if(m >= n)
+        {
+            m = 0;
+            if (panorama.getStatus() == "OK") {
+                Links = panorama.getLinks();
+                if (count > LIMIT) {
+                    alert('stop');
+                    return false;
+                }
+                let target = 0;
+                if (Links.length >= 4) {
+                    target = Math.floor(Math.random() * Links.length);
+                } else {
+                    let val = 360;
+                    let currentPov = panorama.getPov();
+                    Links.forEach(function (element, index) {
+                        let ans = Math.abs(currentPov.heading - element.heading);
+                        if (val > ans) {
+                            val = ans;
+                            target = index;
+                        }
+                    });
+                }
+                panorama.setPov({
+                    heading: Links[target].heading,
+                    pitch: 0
+                });
+                panorama.setPano(Links[target]['pano']);
+
+            };            
+        }
+
+        count++;
+        buttonText.value = String(count) + "歩";
+    }
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=取得したキー&callback=initMap"
+        async defer></script>
+</body>
+</html>
